@@ -1,7 +1,5 @@
 # At top of main.py
-import threading
-import uvicorn
-from server import app, update_room_data
+from server import update_room_data
 import time
 
 # Inside the main while loop, right after calculating occupancy & status:
@@ -102,27 +100,6 @@ def ask_registered_visitors():
             continue
         return value
 
-
-# ============================================================
-# START THE SSE SERVER IN-PROCESS
-# (FIX: run uvicorn in a background daemon thread inside this
-#  same process, instead of relying on `python server.py` as a
-#  separate process. That old setup meant update_room_data()
-#  calls here never reached the server's copy of latest_data —
-#  two processes, two separate memory spaces. Running it in a
-#  thread here means both share the same `latest_data` global.)
-# ============================================================
-
-def _run_server():
-    # log_level="warning" keeps uvicorn's own request logging from
-    # interleaving with the camera loop's console output.
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")
-
-
-server_thread = threading.Thread(target=_run_server, daemon=True)
-server_thread.start()
-print("SSE server started on http://0.0.0.0:8000 (in background thread)")
-print()
 
 total_registered = ask_registered_visitors()
 
