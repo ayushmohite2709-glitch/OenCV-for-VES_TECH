@@ -37,12 +37,7 @@ from ultralytics import YOLO
 # ============================================================
 
 MODEL_PATH = "yolo11n.pt"
-
-# CAMERA_SOURCE accepts either:
-#   - an int, e.g. 0, to open a local device (laptop webcam, USB cam)
-#   - a str URL, e.g. "http://192.168.0.101:4747/video", to open a
-#     network stream (DroidCam over WiFi, an IP camera, etc.)
-CAMERA_SOURCE = "http://192.168.0.101:4747/video"
+CAMERA_INDEX = 0                 # MUST KEEP: laptop built-in webcam
 
 FRAME_WIDTH = 1280
 FRAME_HEIGHT = 720
@@ -160,45 +155,22 @@ else:
 
 
 # ============================================================
-# OPEN CAMERA SOURCE
+# OPEN WEBCAM
 # (FIX: falls back to the default backend if CAP_DSHOW fails to
 #  open on this machine, instead of hard-exiting)
-# ENHANCEMENT: supports a network stream URL (e.g. DroidCam over
-#  WiFi) in addition to a local device index. CAP_DSHOW only
-#  applies to local Windows devices, so a string source is opened
-#  with CAP_FFMPEG instead, and the resolution/backend fallback
-#  logic that's meaningful for local webcams is skipped for it.
 # ============================================================
 
-is_network_source = isinstance(CAMERA_SOURCE, str)
-
-if is_network_source:
-    print(f"Opening network camera stream: {CAMERA_SOURCE}")
-    cap = cv2.VideoCapture(CAMERA_SOURCE, cv2.CAP_FFMPEG)
-    # Keep the read buffer small so the feed doesn't lag behind
-    # real time as frames queue up over WiFi.
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-else:
-    cap = cv2.VideoCapture(CAMERA_SOURCE, cv2.CAP_DSHOW)
-    if not cap.isOpened():
-        cap.release()
-        cap = cv2.VideoCapture(CAMERA_SOURCE)
+cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
+if not cap.isOpened():
+    cap.release()
+    cap = cv2.VideoCapture(CAMERA_INDEX)
 
 if not cap.isOpened():
-    print(f"ERROR: Could not open camera source: {CAMERA_SOURCE}")
-    if is_network_source:
-        print("Check that DroidCam is running, the IP/port match its "
-              "control panel, and the endpoint path is correct "
-              "(commonly /video or /mjpegfeed).")
+    print("ERROR: Could not open webcam.")
     sys.exit(1)
 
-if not is_network_source:
-    # DroidCam (and most network streams) are already encoded at a
-    # fixed resolution by the sender — requesting a different size
-    # here has no effect and can make OpenCV reject frames, so this
-    # is only applied for local devices.
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
 cv2.namedWindow("Hospital Crowd Monitor", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("Hospital Crowd Monitor", FRAME_WIDTH, FRAME_HEIGHT)
